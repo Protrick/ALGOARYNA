@@ -30,6 +30,54 @@ export default function SignUp() {
     e.preventDefault();
     setError("");
     setLoading(true);
+
+    if (!name.trim()) {
+      setError("Name is required");
+      setLoading(false);
+      return;
+    }
+
+    if (!email.includes("@")) {
+      setError("Enter a valid email");
+      setLoading(false);
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim(),
+          password,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Something went wrong");
+        setLoading(false);
+        return;
+      }
+
+      toast.success("Account created successfully");
+      router.push("/signup");
+    } catch (err) {
+      setError("Network error. Please try again.");
+      toast.error("Network error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
