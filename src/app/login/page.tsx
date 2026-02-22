@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { POST } from "../api/auth/register/route";
+import { toast } from "react-hot-toast/headless";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
@@ -30,6 +30,32 @@ export default function SignIn() {
     setLoading(true);
     setError("");
     // sign-in logic
+
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Something went wrong");
+        return;
+      }
+      toast.success("Login Successfull");
+      router.push("/");
+    } catch (err) {
+      console.error("Error signing in:", err);
+      setError("Network error. Please try again.");
+      toast.error("Network error. Please try again.");
+    }
+    finally{
+      setLoading(false);
+    }
   }
 
   return (
