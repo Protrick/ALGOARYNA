@@ -6,6 +6,7 @@ import { useRoomSocket } from "@/hooks/useSocket";
 import { Button } from "@/components/ui/button";
 import { Copy, Check, Wifi, WifiOff, Crown, Users } from "lucide-react";
 
+
 interface Participant {
   id: string;
   email: string;
@@ -256,7 +257,9 @@ export default function ContestPage() {
                     : "The contest will begin once the host starts it. Hang tight!"}
                 </p>
                 {isHost && (
-                  <Button className="mt-6 bg-[#7c5cff] hover:bg-[#6a4ce0] text-white rounded-xl px-8 h-12 font-bold">
+                  <Button className="mt-6 bg-[#7c5cff] hover:bg-[#6a4ce0] text-white rounded-xl px-8 h-12 font-bold"
+                  onClick={() => router.push(`/contest/${roomCode}/play`)}
+                  >
                     Start Contest
                   </Button>
                 )}
