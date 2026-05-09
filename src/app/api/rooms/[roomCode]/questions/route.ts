@@ -40,19 +40,26 @@ export async function POST(
       );
     }
 
-    // Update room with first question as primary for backwards compatibility
-    const firstQuestion = body.questions[0];
+    // Persist all selected questions. Store as JSON strings in the existing
+    // selected* fields to avoid a schema migration. The GET handler will
+    // detect and parse these JSON arrays.
+    const titles = body.questions.map((q) => q.title ?? null);
+    const slugs = body.questions.map((q) => q.titleSlug ?? null);
+    const difficulties = body.questions.map((q) => q.difficulty ?? null);
+    const topics = body.questions.map((q) => q.topic ?? null);
+
     console.log(
-      `📌 [POST /questions] Saving first question: ${firstQuestion.titleSlug}`,
+      `📌 [POST /questions] Saving ${slugs.length} selected questions:`,
+      slugs,
     );
 
     const updatedRoom = await prisma.room.update({
       where: { roomCode },
       data: {
-        selectedTitle: firstQuestion.title,
-        selectedTitleSlug: firstQuestion.titleSlug,
-        selectedDifficulty: firstQuestion.difficulty || "MEDIUM",
-        selectedTopic: firstQuestion.topic || "general",
+        selectedTitle: JSON.stringify(titles),
+        selectedTitleSlug: JSON.stringify(slugs),
+        selectedDifficulty: JSON.stringify(difficulties),
+        selectedTopic: JSON.stringify(topics),
         status: "active",
       },
     });
@@ -106,6 +113,34 @@ export async function GET(
         { error: "No questions selected yet" },
         { status: 404 },
       );
+    }
+
+    // If stored value is JSON (we save arrays as JSON), parse and return an
+    // array of selected questions. Otherwise, return the legacy single
+    // question shape for backwards compatibility.
+    try {
+      const parsedSlugs = JSON.parse(room.selectedTitleSlug as string);
+      const parsedTitles = JSON.parse(room.selectedTitle as string);
+      const parsedDifficulties = JSON.parse(
+        (room.selectedDifficulty as string) || "[]",
+      );
+      const parsedTopics = JSON.parse((room.selectedTopic as string) || "[]");
+
+      if (Array.isArray(parsedSlugs)) {
+        const questions = parsedSlugs.map((slug: string, i: number) => ({
+          title: parsedTitles?.[i] ?? null,
+          titleSlug: slug,
+          difficulty: parsedDifficulties?.[i] ?? null,
+          topic: parsedTopics?.[i] ?? null,
+        }));
+
+        console.log(
+          `✅ [GET /questions] Returning ${questions.length} saved question(s)`,
+        );
+        return NextResponse.json({ questions, status: room.status });
+      }
+    } catch (err) {
+      // not JSON — fall through to legacy response
     }
 
     console.log(
